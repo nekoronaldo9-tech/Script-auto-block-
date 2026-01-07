@@ -1,0 +1,56 @@
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local root = char:WaitForChild("HumanoidRootPart")
+
+-- SETTINGS
+local TEST_MODE = true
+local BLOCK_RANGE = 6
+local BLOCK_COOLDOWN = 1.2
+local STAMINA_COST = 20
+local DAMAGE_REDUCTION = 0.3
+
+local canBlock = true
+local stamina = 100
+
+-- Fake stamina regen (TEST)
+task.spawn(function()
+	while true do
+		if stamina < 100 then
+			stamina += 5
+		end
+		task.wait(1)
+	end
+end)
+
+-- Block animation (optional)
+local anim = Instance.new("Animation")
+anim.AnimationId = "rbxassetid://0" -- ganti jika punya anim
+local blockAnim = humanoid:LoadAnimation(anim)
+
+-- Detect damage (TEST HITBOX COMPATIBLE)
+humanoid.HealthChanged:Connect(function()
+	if not TEST_MODE then return end
+	if not canBlock then return end
+	if stamina < STAMINA_COST then return end
+	if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then return end
+
+	-- AUTO BLOCK TRIGGER
+	canBlock = false
+	stamina -= STAMINA_COST
+
+	blockAnim:Play()
+
+	-- Reduce damage
+	local lastHealth = humanoid.Health
+	task.wait(0.05)
+	if humanoid.Health < lastHealth then
+		local dmg = lastHealth - humanoid.Health
+		humanoid.Health += dmg * (1 - DAMAGE_REDUCTION)
+	end
+
+	-- Cooldown
+	task.delay(BLOCK_COOLDOWN, function()
+		canBlock = true
+	end)
+end)
